@@ -1,0 +1,49 @@
+# Nmap入门
+
+## nmap主机发现
+
+Nmap支持十多种不同的主机探测方式，比如发送ICMP的ECHO/TIMESTAMP/NETMASK报文，TCP的SYN/ACK包等，用户可以在不同的条件下灵活选用不同的方式来探测目标机
+
+
+
+使用nmap 域名/ip地址，可以探测主机是否在线，以及开放的端口
+
+![](../image/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/nmap%E6%89%AB%E6%8F%8F.png)
+
+对于已经知道主机存活或者防火墙开启的机器，可以使用-Pn参数来停止探测之前的ICMP请求，以达到不触发防火墙安全机制的目的
+
+![](../image/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/nmap%20-pn.png)
+
+可以使用-p m-n来指定探测端口范围为m-n之间的所有端口
+
+![](../image/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/nmap%20-p%20m-n.png)
+
+## nmap 识别服务指纹
+
+通过分析目标往Nmap发送的数据包中某些协议标记、选项和数据，我们可以推断发送这些数据包的操作系统等
+
+nmap通过向目标主机发送多个UDP与TCP数据包并分析其响应来进行操作系统指纹识别工作
+
+nmap -sV 命令识别目标机器的服务信息
+
+![](../image/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/nmap%20-sV.png)
+
+**Nmap侵略性的探测**
+
+namp -A -v -T4 IP地址
+
+![](../image/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/nmap%20-a.png)
+
+使用nmap -sC -sV -O IP地址 来探测目标主机的操作系统、服务等信息
+
+sC表示使用Nmap脚本进行探测
+
+
+
+## nmap 探测局域网内存活主机
+
+使用nmap -sP CIDR 对网络中所有主机进行ping扫描，以探测主机存活性
+
+扫描过程使用了TCP SYN扫描、ICMP echo Request来探测主机存活
+
+![](../image/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/nmap%20-sP.png)
