@@ -1,5 +1,9 @@
 # Python密码学编程
 
+[TOC]
+
+
+
 ## 古典密码学编程
 
 古典密码主要通过字符间的置换和代(替)换实现
@@ -615,7 +619,7 @@ SPN结构：轮函数包含代换层-置换层-密钥混合层
 
 ### 分组密码的工作方式
 
-#### **电子密码本模式ECB**
+#### 电子密码本模式ECB
 
 ![](image/Python/%E5%88%86%E7%BB%84%E5%AF%86%E7%A0%81%E5%B7%A5%E4%BD%9C%E6%A8%A1%E5%BC%8F-ECB%E6%A8%A1%E5%BC%8F.png)
 
@@ -687,7 +691,7 @@ $$
 
 ### Python编码
 
-#### **AES-ECB代码示例**
+#### AES-ECB代码示例
 
 ```py
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -925,3 +929,372 @@ for c in ciphertexts:
     print("recovered",manager.updateEncrypt(c))
 print("recovered",manager.finalizeEncrypt())
 ```
+
+
+
+## 公钥加密
+
+### 公钥密码体制的提出
+
+**初始密钥分配**
+
+对称密码体制，发送方指定一个(种子)密钥后，必须得想方设法把密钥告知接收方，怎样确保"告知过程"密钥不泄露
+
+**密钥管理**
+
+在有n个用户的网络中，若需要两两用户安全通信，则每对用户需要共享独立得秘密密钥，网络中需要管理得密钥总数是$n(n-1)/2$
+
+**不可抵赖性**
+
+当主体A收到主体B的电子文档时，无法向第三方证明此电子文档确实来源于B
+
+
+
+### 公钥密码体制的思想
+
+**公钥密码体制满足下列要求:**
+
+1. 接收方A容易产生一对密钥(公钥Pk和私钥Sk)
+2. 发送方B在知道接收方A公钥Pk和待加密的消息M的情况下，很容易通过加密函数产生对应的密文C；同理，接收方收到密文C后，容易用私钥Sk和解密函数解出密文
+3. 攻击者E即使知道公钥，要确定私钥在计算上是不可行的
+4. 攻击者E即使知道公钥和密文C，要想恢复原来的消息M在计算上也是不可行的
+5. 加密、解密次序可交换(不是硬性要求)
+
+**陷门单向函数**
+
+正向计算简单，已知私钥和消息M，容易计算C=$f_{pk}(M)$
+
+在不知道密钥的情况下，反向计算不可行 $M=f^{-1}(C)$
+
+在知道密钥的情况下，反向计算容易 M=$f_{sk}^{-1}(C)$,私钥$S_k$是陷门
+
+
+
+### 常用的公钥密码体制
+
+根据基于的计算困难问题的不同，分为：
+
+基于大整数因子分解问题：RSA
+
+基于有限域乘法群上的离散对数问题：Elgamal
+
+基于椭圆曲线上的离散对数问题：ECC
+
+基于格的短向量问题(后量子密码)：如NTRU,LWE
+
+
+
+### 公钥密码体制的优势和不足
+
+密钥分发简单；需要秘密保存的密钥量减少；可以实现数字签名和认证功能
+
+公钥密码算法比对称密码算法慢，密钥长度长，有数据扩展
+
+
+
+### 公钥加密模型
+
+![](image/Python/Snipaste_2024-10-16_10-27-35.png)
+
+### RSA公钥密码体制
+
+#### 密钥产生
+
+1. 选择两个安全的大素数p和q
+2. 计算n=pxq,$\phi(n)=(p-1)(q-1)$，其中φ(n)是n的欧拉函数值
+3. 选一整数e，满足$1<e<\phi(n)$，且gcd($\phi(n)$,e)=1
+4. 计算d，满足d·e$\equiv$1 mod $\phi(n)$ 即d是e在模$\phi(n)$下的乘法逆元，因e与$\phi(n)$互素，则它的乘法逆元存在且唯一
+5. 以{e,n}为公开密钥，{d,n}为秘密密钥
+
+#### 加密
+
+加密首先将明文分组，使得每个分组m值小于n，即分组长度小于$log_2^n$，然后对每个明文分组m作加密运算
+$$
+c=m^e~mod~n
+$$
+
+#### 解密
+
+对每个密文分组的解密运算
+$$
+m\equiv c^d~mod~n
+$$
+
+#### 正确性
+
+证明：若m与n互素，由加密过程知$c\equiv m^e~mod~n$
+$$
+c^d~mod~n\equiv m^{ed}~mod~n=m^{k\phi(n)+1} ~mod~n
+$$
+由欧拉定理
+$$
+m^{\phi(n)}\equiv~1~mod~n
+$$
+所以
+$$
+m^{k\phi(n)}\equiv~1~mod~n
+$$
+进而
+$$
+m^{k\phi(n)+1} \equiv m~mod~n
+$$
+即
+$$
+c^d~mod~n\equiv m
+$$
+
+#### 安全性
+
+整数分解问题：已知n是两个大素数的乘积，求n的素分解
+
+如果RSA加密算法的模数n被成功分解为pxq，则获得$\phi(n)=(p-1)(q-1)$，从而攻击者能够从公钥e解出私钥d
+
+至今还未能证明分解大整数就是NPC问题，也许有尚未发现的多项式时间分解算法
+
+随着人类计算能力的不断提高，原来被认为是不可能分解的大整数已被成功分解
+
+
+
+## 消息和实体认证
+
+### 消息认证码
+
+消息认证码(Message Authentication Code,MAC)是定义在(K,M,T)上的算法:
+
+- 发送方A和接收方B共享密钥$k\in K$，若A向B发送消息$m\in M$,则A利用$t=S(k,m)$计算MAC值$t\in T$
+- 接收方B对接收到的($m^*,t^*$),验证V(k,$m^*$,$t^*$)=Accept或Reject
+
+S是消息认证函数，利用密钥和任意长度的消息来生成一个固定长度的短数据块，若验证过程V(k,$m^*$,$t^*$)输出Accept，接收方可以相信消息未被修改，同时可以确信消息来自真正的发送方
+
+
+
+消息认证可以抵御伪造、篡改攻击，确认信息来源的真实性
+
+消息认证码提供两种安全服务功能，通过：
+
+- 把任意长的消息变成固定长的输出--抗碰撞的单向函数-hash
+- 使用对称密钥
+- 消息认证码：带密钥的hash
+
+![](image/Python/Snipaste_2024-10-29_10-16-13.png)
+
+**代码5-1 伪MAC与对称加密**
+
+```py
+from cryptography.hazmat.primitives.ciphers import Cipher,algorithms,modes
+from cryptography.hazmat.backends import default_backend
+import os,hashlib
+
+# 伪MAC与对称加密
+class Encryptor:
+    # 选择AES-CTR加密模式，哈希使用sha256算法
+    def __init__(self,key,nonce):
+        aesContext = Cipher (algorithms.AES (key),modes.CTR(nonce),backend=default_backend())
+        self.encryptor = aesContext.encryptor()
+        self.hasher=hashlib.sha256()
+    # 更新哈希和密文 
+    def update_encrypt(self,plaintext):
+        ciphertext = self.encryptor.update(plaintext)
+        self.hasher.update(ciphertext)
+        return ciphertext
+
+    def finalize_encryptor(self):
+        # 加密结束，返回计算后的哈希
+        return self.encryptor.finalize()+self.hasher.digest()
+
+if __name__ == '__main__':
+    key=os.urandom (32)
+    nonce=os.urandom (16)
+    manager = Encryptor(key,nonce)
+    ciphertext = manager.update_encrypt(b'Hi Bob,this is Alice')
+    ciphertext += manager.finalize_encryptor()
+    print(ciphertext)
+
+```
+
+伪MAC不是安全的，在某种情况下，攻击者可插入一条新的消息和一条新的伪MAC
+
+真正的MAC依赖于密钥，没有密钥的攻击者无法更改数据而不被察觉
+
+
+
+### 消息认证码-HMAC
+
+Hash-based Message Authentication Code
+$$
+H(K \oplus opad,H(K \oplus ipad,text))
+$$
+如果密钥比单项散列函数分组长度要短，就需要在末尾填充0,直到其长度达到单向散列函数的分组长度为止
+
+如果密钥比分组长度要长，则要用单向散列函数求出密钥的散列值，然后将这个散列值用做HMAC的密钥
+
+#### HMAC构造原理
+
+H是一个哈希函数
+
+K表示密钥
+
+B表示计算消息摘要时消息分块的字节长度
+
+L表示消息摘要按字节计算的长度
+
+ipad表示0x36重复B次，opad表示0x5c重复B次
+
+K可以有不超过B字节的任意长度，但一般建议K的长度不小于L
+
+当使用长度大于B的密钥时，先用H对密钥进行杂凑，然后用得出的L字节作为HMAC的真正密钥
+
+
+
+#### CBC-MAC的构造
+
+![](image/Python/Snipaste_2024-10-29_12-11-51.png)
+
+填充数据：
+
+1. 在数据右边填充若干的0
+2. 右边先填充一个“1”比特，然后填充若干个"0"比特
+3. 右边填充若干个0，然后在所得数据串左边填充一个n比特组，该组包含了进行填充的数据的比特长度的二元表示，其左边用0补齐
+
+
+
+**代码5-2 伪MAC和CBC**
+
+```PY
+from cryptography.hazmat.primitives.ciphers import Cipher,algorithms,modes
+from cryptography.hazmat.backends import  default_backend
+from cryptography.hazmat.primitives import padding
+import os
+
+def BROKEN_CBCMAC1(message,key,pad=True):
+        aesCipher=Cipher(algorithms.AES(key),modes.CBC(bytes(16)),backend=default_backend())
+        aesEncrypt= aesCipher.encryptor();
+
+        if pad:
+            padder = padding.PKCS7(128).padder()
+            padded_message = padder.update(message)+padder.finalize()
+        elif len(message)%16 ==0:
+            padded_message =message
+        else:
+            raise Exception("Unpadded input not a multiple of 16!")
+        ciphertext = aesEncrypt.update(padded_message)
+        # 最后16字节是最后的块，即CBC-MAC
+        return ciphertext[-16:]
+key = os.urandom(32)
+mac1 =BROKEN_CBCMAC1(b"hello world,hello world,hello world,hello world,",key)
+print(mac1)
+mac2 =BROKEN_CBCMAC1(b"Hello world,hello world,hello world,hello world,",key)
+print(mac2)
+```
+
+
+
+**代码5-3 MAC模拟攻击**
+
+```py
+from cryptography.hazmat.primitives.ciphers import Cipher,algorithms,modes
+from cryptography.hazmat.backends import  default_backend
+from cryptography.hazmat.primitives import padding
+import os
+
+def BROKEN_CBCMAC1(message,key,pad=True):
+        aesCipher=Cipher(algorithms.AES(key),modes.CBC(bytes(16)),backend=default_backend())
+        aesEncrypt= aesCipher.encryptor()
+
+        if pad:
+            padder = padding.PKCS7(128).padder()
+            padded_message = padder.update(message)+padder.finalize()
+        elif len(message)%16 ==0:
+            padded_message =message
+        else:
+            raise Exception("Unpadded input not a multiple of 16!")
+        ciphertext = aesEncrypt.update(padded_message)
+        # 最后16字节是最后的块，即CBC-MAC
+        return ciphertext[-16:]
+
+def prependAttack(original,prependMessages,key):
+    # 假设prependMessage是16字节
+    # original 至少16字节
+    prependMac=BROKEN_CBCMAC1(prependMessages,key,pad=True)
+    newFirstBlock=bytearray(original [:16])
+    for i in range(16):
+        newFirstBlock[i] ^=prependMac[i]
+    newFirstBlock=bytes(newFirstBlock)
+    return prependMac+newFirstBlock+original[16:]
+
+key = os.urandom(32)
+originalMessage = b"attack the enemy forces at dawn!"
+prependMessage =b"do not attack.(End of message,padding follows)"
+newMessage=prependAttack(originalMessage,prependMessage,key)
+mac1=BROKEN_CBCMAC1(originalMessage,key)
+mac2=BROKEN_CBCMAC1(newMessage,key)
+print("Original Message and mac:",originalMessage,mac1.hex())
+print("New Message and mac:",newMessage,mac2.hex())
+if mac1==mac2:
+    print("\n Two messages with the same MAC,Attack succeeded!!")
+```
+
+### 数字签名
+
+MAC提供消息的认证性依赖于对称密钥，对称密钥的分发和管理存在问题
+
+MAC使用的对称密钥泄露后，无法实现消息的认证功能
+
+非对称加密使用数字签名方案提供消息的完整性和认证性的安全服务
+
+- 把任意长消息变为固定长的输出--抗碰撞性的单向函数，hash
+- 使用非对称密钥中的私钥加密，实现认证性
+
+
+
+数字签名，指的是附加在某一电子文档中的一组特定的符号或代码，它是利用数学方法对该电子文档进行关键信息提取并与用户私有信息进行混合运算而形成的，用于标识签发者身份以及签发者对电子文档的认可，并能被接收者用于验证该电子文档在传输过程中是否被篡改或伪造
+
+
+
+#### 数字签名模型
+
+**密钥生成：**
+
+概率算法，输入一个二进制的安全参数$1^k \in N$,为签名者生成一对密钥($PK_A,SK_A$),$PK_A$是公开钥，$SK_A$是秘密密钥
+
+**签名：**
+
+概率算法或确定算法，签名者A首先对待签消息m进行摘要提取h(m),然后用私钥对其签名$S=Sig_{SK_A}(m)$
+
+**验证:**
+
+确定算法，任何验证者获得A的公钥，并验证消息m及其签名S是否正确
+$$
+Ver_{PK_A}(S,m)=\begin {cases}True\\False
+\end{cases}
+$$
+
+
+#### RSA数字签名算法
+
+1. 密钥生成
+
+选择两个安全的大素数p和q
+
+计算$n=p\times q,\phi(n)=(p-1)(q-1)$,其中$\phi(n)$是n的欧拉函数值
+
+选一整数e，满足$1<e<\phi(n)$，即d是e在模$\phi(n)$下的乘法逆元。因e与$\phi(n)$互素，故它的乘法逆元存在且唯一
+
+(e,n)为公开密钥，(d,n)为秘密密钥
+
+选取一个hash函数h:$\{0,1\}^*\to \{0,1\}^t$，t为安全参数
+
+2. 签名
+
+设待签名消息为m，用私钥对其签名
+$$
+s\equiv h(n)^d~mod~n
+$$
+
+3. 验证
+
+验证者获取签名者公钥{e,n}，对收到的消息签名对{m,s}计算下列式子是否成立
+$$
+h(m)\equiv s^e~mod~n
+$$
+若成立，则发送方的签名有效
